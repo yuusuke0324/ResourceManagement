@@ -1,0 +1,21 @@
+---
+# tasks file for update_resources
+
+- name: Set permissions and ownership for resources
+  ansible.builtin.find:
+    paths: "{{ local_clone_path }}"
+    recurse: yes
+  register: found_resources
+
+- name: Update resources
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
+    dest: "{{ item.path | regex_replace(local_clone_path, destination_path) }}"
+    mode: "{{ item.mode }}"
+    owner: "{{ item.uid }}"
+    group: "{{ item.gid }}"
+  with_items: "{{ found_resources.files }}"
+  when: resource_list_path is defined and local_clone_path is defined and destination_path is defined and (update_target is undefined or item.path in update_target)
+  loop_control:
+    loop_var: item
+  notify: "Set permissions and ownership"

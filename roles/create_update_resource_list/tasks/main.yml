@@ -1,0 +1,31 @@
+---
+# tasks file for create_update_resource_list
+
+- name: Create current resource list
+  find:
+    paths: "{{ resource_dir }}"
+    recurse: yes
+    file_type: file_or_directory
+  register: find_result
+
+- name: Get previous resource list
+  fetch:
+    src: "{{ output_file }}"
+    dest: "{{ temp_dir }}"
+    flat: yes
+  ignore_errors: true
+  register: fetch_result
+
+- name: Create and update resource list
+  set_fact:
+    current_list: "{{ find_result.files | map(attribute='path') | sort }}"
+    previous_list: "{{ lookup('file', temp_dir + '/previous_list.txt').split('\n') | sort }}"
+    updated_list: "{{ current_list | difference(previous_list) }}"
+    final_list: "{{ previous_list + updated_list }}"
+  when: find_result.matched > 0 and fetch_result.rc == 0
+
+- name: Save the updated resource list
+  copy:
+    content: "{{ final_list | join('\n') }}"
+    dest: "{{ output_file }}"
+  when: updated_list | length > 0

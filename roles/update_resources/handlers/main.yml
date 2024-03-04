@@ -1,0 +1,14 @@
+---
+# handlers file for update_resources
+
+- name: Set permissions and ownership
+  ansible.builtin.file:
+    path: "{{ item.path | regex_replace(local_clone_path, destination_path) }}"
+    state: "{{ item.type }}"
+    recurse: yes
+    mode: "{{ item.mode }}"
+    owner: "{{ item.uid }}"
+    group: "{{ item.gid }}"
+  with_items: "{{ found_resources.files }}"
+  loop_control:
+    loop_var: item"

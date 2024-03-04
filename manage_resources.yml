@@ -1,0 +1,16 @@
+---
+- name: Create Resource List
+  hosts: your_target_host
+  become: yes
+  gather_facts: false
+
+  roles:
+    - role: create_update_resource_list
+
+- name: Update Resources
+  hosts: your_target_host
+  become: yes
+  gather_facts: false
+
+  roles:
+    - role: update_resources
