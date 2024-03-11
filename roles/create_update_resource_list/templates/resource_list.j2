@@ -1,0 +1,12 @@
+[
+  {% for item in final_list %}
+    {
+      "path": "{{ item.path }}",
+      "mode": "{{ item.mode }}",
+      "owner": "{{ item.pw_name if 'pw_name' in item else item.stat.pw_name if item.stat is defined and 'pw_name' in item.stat else '' }}",
+      "group": "{{ item.gr_name if 'gr_name' in item else item.stat.gr_name if item.stat is defined and 'gr_name' in item.stat else '' }}",
+      "isdir": "{{ item.isdir }}",
+      "size": {{ item.size | default(0) }}
+    }{% if not loop.last %},{% endif %}
+  {% endfor %}
+]

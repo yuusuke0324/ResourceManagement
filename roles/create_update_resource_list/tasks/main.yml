@@ -1,31 +1,78 @@
----
 # tasks file for create_update_resource_list
 
-- name: Create current resource list
+- name: Create current file list
   find:
     paths: "{{ resource_dir }}"
     recurse: yes
-    file_type: file_or_directory
-  register: find_result
+    file_type: file
+  register: find_files_result
+  async: "{{ resource_dir | length }}"
+  poll: 0
+
+- name: Wait for completion of asynchronous tasks (File List)
+  async_status:
+    jid: "{{ find_files_result.ansible_job_id }}"
+  register: async_files_status
+  until: async_files_status.finished
+  retries: 30
+  delay: 5
+
+- name: Create current directory list
+  find:
+    paths: "{{ resource_dir }}"
+    recurse: yes
+    file_type: directory
+  register: find_directories_result
+  async: "{{ resource_dir | length }}"
+  poll: 0
+
+- name: Wait for completion of asynchronous tasks (Directory List)
+  async_status:
+    jid: "{{ find_directories_result.ansible_job_id }}"
+  register: async_directories_status
+  until: async_directories_status.finished
+  retries: 30
+  delay: 5
+
+- name: Set current files list
+  set_fact:
+    current_files_list: "{{ async_files_status.files | default([]) }}"
+  when: async_files_status.finished
+
+- name: Set current directories list
+  set_fact:
+    current_directories_list: "{{ async_directories_status.files | default([]) }}"
+  when: async_directories_status.finished
+
+# - name: Set current resource list
+#   set_fact:
+#     current_list: "{{ async_files_status.files + async_directories_status.files | map('combine', {'stat': {}, 'invocation': {'module_args': {'path': item.path}}}) | list }}"
+#   loop: "{{ async_files_status.files + async_directories_status.files }}"
+
+- name: Set current resource list
+  set_fact:
+    current_list: "{{ async_files_status.files + async_directories_status.files }}"
 
 - name: Get previous resource list
-  fetch:
-    src: "{{ output_file }}"
-    dest: "{{ temp_dir }}"
-    flat: yes
-  ignore_errors: true
-  register: fetch_result
-
-- name: Create and update resource list
   set_fact:
-    current_list: "{{ find_result.files | map(attribute='path') | sort }}"
-    previous_list: "{{ lookup('file', temp_dir + '/previous_list.txt').split('\n') | sort }}"
-    updated_list: "{{ current_list | difference(previous_list) }}"
-    final_list: "{{ previous_list + updated_list }}"
-  when: find_result.matched > 0 and fetch_result.rc == 0
+    args:
+      previous_list: "{{ lookup('file', output_dir + '/' + output_file | default('', true)) | from_json | default([]) | list }}"
+  ignore_errors: true
 
-- name: Save the updated resource list
-  copy:
-    content: "{{ final_list | join('\n') }}"
+# TODO: Consider optimizing the following tasks for performance
+- name: Update resource list
+  set_fact:
+    updated_list: "{{ current_list | difference((previous_list | default([]))) }}"
+
+# TODO: Consider optimizing the following tasks for performance
+- name: Create resource list
+  set_fact:
+    final_list: "{{ (previous_list | default([])) + (updated_list | default([])) }}"
+
+# TODO: Consider optimizing the following tasks for performance
+- name: Save the updated resource lists using template
+  template:
+    src: templates/resource_list.j2
     dest: "{{ output_file }}"
   when: updated_list | length > 0
+  loop: "{{ final_list }}"
