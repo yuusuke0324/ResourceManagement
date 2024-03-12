@@ -1,7 +1,2 @@
 ---
 # vars file for update_resources
-
-resource_list_path: "/path/to/resource_list.json"
-local_clone_path: "/work/gitrepo"
-destination_path: "/"
-update_target: "{{ update_target }}"

@@ -1,21 +1,88 @@
----
 # tasks file for update_resources
 
-- name: Set permissions and ownership for resources
-  ansible.builtin.find:
-    paths: "{{ local_clone_path }}"
-    recurse: yes
-  register: found_resources
+- name: Check if resource list file exists
+  stat:
+    path: "{{ resource_list_dir }}/{{ resource_list_file }}"
+  register: resource_list_stat
 
-- name: Update resources
+- name: Fail if resource list file does not exist
+  fail:
+    msg: "Resource list file does not exist."
+  when: not resource_list_stat.stat.exists
+
+- name: Read resource list from JSON file
+  set_fact:
+    resource_list: "{{ lookup('file', resource_list_dir + '/' + resource_list_file | default('', true)) | from_json | default([]) | list }}"
+
+- name: Set remote files
+  ansible.builtin.find:
+    paths: "{{ local_clone_dir }}"
+    recurse: yes
+    file_type: file
+  register: found_files
+  async: 600
+  poll: 0
+
+- name: Wait for completion of asynchronous tasks
+  async_status:
+    jid: "{{ found_files.ansible_job_id }}"
+  register: async_found_files
+  until: async_found_files.finished
+  retries: 30
+  delay: 5
+
+- name: Filter files with size differences
+  set_fact:
+    files_with_differences: "{{ async_found_files.files |
+      selectattr('size', 'ne', resource_list | default([]) |
+      map(attribute='size') | default([]) |
+      map('default', 0)) |
+      list }}"
+
+- name: Copy and update files
   ansible.builtin.copy:
-    src: "{{ item.path }}"
-    dest: "{{ item.path | regex_replace(local_clone_path, destination_path) }}"
+    src: "{{ local_clone_dir }}/{{ item.path | regex_replace(local_clone_dir, resource_dir) | regex_replace('.*/', '') }}"
+    dest: "{{ item.path | regex_replace(local_clone_dir, resource_dir) }}"
     mode: "{{ item.mode }}"
-    owner: "{{ item.uid }}"
-    group: "{{ item.gid }}"
-  with_items: "{{ found_resources.files }}"
-  when: resource_list_path is defined and local_clone_path is defined and destination_path is defined and (update_target is undefined or item.path in update_target)
-  loop_control:
-    loop_var: item
-  notify: "Set permissions and ownership"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+  loop: "{{ resource_list }}"
+  when: "(item.path | regex_replace(local_clone_dir, resource_dir) | basename) in (files_with_differences | map(attribute='path') | map('regex_replace', local_clone_dir, resource_dir) | map('basename'))"
+  register: copy_result_files
+
+- name: Set remote directories
+  ansible.builtin.find:
+    paths: "{{ local_clone_dir }}"
+    recurse: yes
+    file_type: directory
+  register: found_directories
+  async: 600
+  poll: 0
+
+- name: Wait for completion of asynchronous tasks
+  async_status:
+    jid: "{{ found_directories.ansible_job_id }}"
+  register: async_found_directories
+  until: async_found_directories.finished
+  retries: 30
+  delay: 5
+
+- name: Filter directories with differences
+  set_fact:
+    directories_with_differences: "{{ async_found_directories.files |
+      selectattr('pw_name', 'ne', resource_list | default([]) |
+      map(attribute='pw_name') | default([]) | list) |
+      selectattr('mode', 'ne', resource_list | default([]) |
+      map(attribute='mode') | default([]) | list) |
+      list }}"
+
+- name: Copy and update directories
+  ansible.builtin.copy:
+    src: "{{ local_clone_dir }}/{{ item.path | regex_replace(local_clone_dir, resource_dir) | regex_replace('.*/', '') }}"
+    dest: "{{ item.path | regex_replace(local_clone_dir, resource_dir) }}"
+    mode: "{{ item.mode }}"
+    owner: "{{ item.pw_name }}"
+    group: "{{ item.gr_name }}"
+    remote_src: yes
+  loop: "{{ directories_with_differences }}"
+  when: "(item.path | regex_replace(local_clone_dir, resource_dir) | basename) in (directories_with_differences | map(attribute='path') | map('regex_replace', local_clone_dir, resource_dir) | map('basename'))"

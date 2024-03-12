@@ -44,11 +44,6 @@
     current_directories_list: "{{ async_directories_status.files | default([]) }}"
   when: async_directories_status.finished
 
-# - name: Set current resource list
-#   set_fact:
-#     current_list: "{{ async_files_status.files + async_directories_status.files | map('combine', {'stat': {}, 'invocation': {'module_args': {'path': item.path}}}) | list }}"
-#   loop: "{{ async_files_status.files + async_directories_status.files }}"
-
 - name: Set current resource list
   set_fact:
     current_list: "{{ async_files_status.files + async_directories_status.files }}"
@@ -56,7 +51,7 @@
 - name: Get previous resource list
   set_fact:
     args:
-      previous_list: "{{ lookup('file', output_dir + '/' + output_file | default('', true)) | from_json | default([]) | list }}"
+      previous_list: "{{ lookup('file', resource_list_dir + '/' + resource_list_file | default('', true)) | from_json | default([]) | list }}"
   ignore_errors: true
 
 # TODO: Consider optimizing the following tasks for performance
@@ -73,6 +68,6 @@
 - name: Save the updated resource lists using template
   template:
     src: templates/resource_list.j2
-    dest: "{{ output_file }}"
+    dest: "{{ resource_list_file }}"
   when: updated_list | length > 0
   loop: "{{ final_list }}"

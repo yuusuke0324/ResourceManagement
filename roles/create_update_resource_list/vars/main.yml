@@ -1,6 +1,2 @@
 ---
 # vars file for create_update_resource_list
-
-resource_dir: "/path/to/resources"
-output_file: "/path/to/resource_list.json"
-temp_dir: "/tmp"
