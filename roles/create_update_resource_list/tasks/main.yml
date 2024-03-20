@@ -46,7 +46,7 @@
 
 - name: Set current resource list
   set_fact:
-    current_list: "{{ async_files_status.files + async_directories_status.files }}"
+    current_list: "{{ async_files_status.files + async_directories_status.files | unique }}"
 
 - name: Get previous resource list
   set_fact:

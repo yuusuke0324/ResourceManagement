@@ -41,7 +41,7 @@
 
 - name: Copy and update files
   ansible.builtin.copy:
-    src: "{{ local_clone_dir }}/{{ item.path | regex_replace(local_clone_dir, resource_dir) | regex_replace('.*/', '') }}"
+    src: "{{ item.path | regex_replace(resource_dir, local_clone_dir) }}"
     dest: "{{ item.path | regex_replace(local_clone_dir, resource_dir) }}"
     mode: "{{ item.mode }}"
     owner: "{{ item.owner }}"
@@ -85,4 +85,4 @@
     group: "{{ item.gr_name }}"
     remote_src: yes
   loop: "{{ directories_with_differences }}"
-  when: "(item.path | regex_replace(local_clone_dir, resource_dir) | basename) in (directories_with_differences | map(attribute='path') | map('regex_replace', local_clone_dir, resource_dir) | map('basename'))"
+  when: "(item.path | regex_replace(local_clone_dir, resource_dir) | basename) in (files_with_differences | map(attribute='path') | map('regex_replace', local_clone_dir, resource_dir) | map('basename')) and not item.isdir"
