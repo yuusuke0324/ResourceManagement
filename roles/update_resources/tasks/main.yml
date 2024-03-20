@@ -41,13 +41,13 @@
 
 - name: Copy and update files
   ansible.builtin.copy:
-    src: "{{ item.path | regex_replace(resource_dir, local_clone_dir) }}"
-    dest: "{{ item.path | regex_replace(local_clone_dir, resource_dir) }}"
+    src: "{{ item.path | regex_replace(resource_dirs, local_clone_dir) }}"
+    dest: "{{ item.path | regex_replace(local_clone_dir, resource_dirs) }}"
     mode: "{{ item.mode }}"
     owner: "{{ item.owner }}"
     group: "{{ item.group }}"
   loop: "{{ resource_list }}"
-  when: "(item.path | regex_replace(local_clone_dir, resource_dir) | basename) in (files_with_differences | map(attribute='path') | map('regex_replace', local_clone_dir, resource_dir) | map('basename'))"
+  when: "(item.path | regex_replace(local_clone_dir, resource_dirs) | basename) in (files_with_differences | map(attribute='path') | map('regex_replace', local_clone_dir, resource_dirs) | map('basename'))"
   register: copy_result_files
 
 - name: Set remote directories
@@ -78,11 +78,11 @@
 
 - name: Copy and update directories
   ansible.builtin.copy:
-    src: "{{ local_clone_dir }}/{{ item.path | regex_replace(local_clone_dir, resource_dir) | regex_replace('.*/', '') }}"
-    dest: "{{ item.path | regex_replace(local_clone_dir, resource_dir) }}"
+    src: "{{ local_clone_dir }}/{{ item.path | regex_replace(local_clone_dir, resource_dirs) | regex_replace('.*/', '') }}"
+    dest: "{{ item.path | regex_replace(local_clone_dir, resource_dirs) }}"
     mode: "{{ item.mode }}"
     owner: "{{ item.pw_name }}"
     group: "{{ item.gr_name }}"
     remote_src: yes
   loop: "{{ directories_with_differences }}"
-  when: "(item.path | regex_replace(local_clone_dir, resource_dir) | basename) in (files_with_differences | map(attribute='path') | map('regex_replace', local_clone_dir, resource_dir) | map('basename')) and not item.isdir"
+  when: "(item.path | regex_replace(local_clone_dir, resource_dirs) | basename) in (files_with_differences | map(attribute='path') | map('regex_replace', local_clone_dir, resource_dirs) | map('basename')) and not item.isdir"

@@ -2,11 +2,11 @@
 
 - name: Create current file list
   find:
-    paths: "{{ resource_dir }}"
+    paths: "{{ resource_dirs }}"
     recurse: yes
     file_type: file
   register: find_files_result
-  async: "{{ resource_dir | length }}"
+  async: "{{ resource_dirs | length }}"
   poll: 0
 
 - name: Wait for completion of asynchronous tasks (File List)
@@ -19,11 +19,11 @@
 
 - name: Create current directory list
   find:
-    paths: "{{ resource_dir }}"
+    paths: "{{ resource_dirs }}"
     recurse: yes
     file_type: directory
   register: find_directories_result
-  async: "{{ resource_dir | length }}"
+  async: "{{ resource_dirs | length }}"
   poll: 0
 
 - name: Wait for completion of asynchronous tasks (Directory List)
