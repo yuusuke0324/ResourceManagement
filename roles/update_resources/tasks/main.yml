@@ -37,6 +37,7 @@
       selectattr('size', 'ne', resource_list | default([]) |
       map(attribute='size') | default([]) |
       map('default', 0)) |
+      selectattr('path', 'match', (update_target | default('')) | regex_replace(resource_dirs, local_clone_dir)) |
       list }}"
 
 - name: Copy and update files
@@ -74,6 +75,7 @@
       map(attribute='pw_name') | default([]) | list) |
       selectattr('mode', 'ne', resource_list | default([]) |
       map(attribute='mode') | default([]) | list) |
+      selectattr('path', 'match', update_target | default('') | regex_replace(resource_dirs, local_clone_dir)) |
       list }}"
 
 - name: Copy and update directories
