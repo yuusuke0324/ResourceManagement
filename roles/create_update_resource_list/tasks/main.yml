@@ -51,7 +51,7 @@
 - name: Get previous resource list
   set_fact:
     args:
-      previous_list: "{{ lookup('file', resource_list_dir + '/' + resource_list_file | default('', true)) | from_json | default([]) | list }}"
+      previous_list: "{{ lookup('file', resource_list_dir + '/resource_list_' + inventory_hostname + '.json' | default('', true)) | from_json | default([]) | list }}"
   ignore_errors: true
 
 # TODO: Consider optimizing the following tasks for performance
@@ -68,6 +68,6 @@
 - name: Save the updated resource lists using template
   template:
     src: templates/resource_list.j2
-    dest: "{{ resource_list_file }}"
+    dest: "{{ resource_list_dir }}/resource_list_{{ inventory_hostname }}.json"
   when: updated_list | length > 0
   loop: "{{ final_list }}"

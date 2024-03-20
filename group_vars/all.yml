@@ -1,7 +1,6 @@
 ---
 resource_list_dir: "/Users/nakagawayuusuke/Desktop/ResourceManagement"
-resource_list_file: "resource_list.json"
-resource_dirs:
-  - "/Users/nakagawayuusuke/Desktop/list_test"
+resource_list_file: "resource_list_{{ inventory_hostname }}.json"
+resource_dirs: "/Users/nakagawayuusuke/Desktop/list_test"
 local_clone_dir: "/Users/nakagawayuusuke/Desktop/copy_check"
 update_target: "{{ update_target }}"
